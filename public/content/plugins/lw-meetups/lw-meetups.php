@@ -1,3 +1,10 @@
+/*
+Plugin Name: Upcoming Meetups
+Description: Lists upcoming meetups from LessWrong
+Author: Taymon A. Beal
+Author URI: https://anomalybeta.com
+*/
+
 class LW_Meetups_Widget extends WP_Widget {
 
 	public function __construct() {
