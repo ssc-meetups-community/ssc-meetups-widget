@@ -20,14 +20,16 @@ class LW_Meetups_Widget extends WP_Widget {
 
 	public function widget( $args, $instance ) {
 		$title = apply_filters( 'widget_title',
-			( ! empty( $instance['title'] ) ) ? $instance['title'] : __( self::DEFAULT_TITLE ),
+			isset( $instance['title'] )
+					? ( $instance['title'] || __( self::DEFAULT_TITLE ) )
+					: __( self::DEFAULT_TITLE ),
 			$instance, $this->id_base
 		);
-		$max_count = ( ! empty( $instance['max_count'] ) )
-				? absint( $instance['max_count'] )
+		$max_count = isset( $instance['max_count'] )
+				? ( absint( $instance['max_count'] ) || self::DEFAULT_MAX_COUNT )
 				: self::DEFAULT_MAX_COUNT;
-		$cache_seconds = ( ! empty( $instance['cache_seconds'] ) )
-				? absint( $instance['cache_seconds'] )
+		$cache_seconds = isset( $instance['cache_seconds'] )
+				? ( absint( $instance['cache_seconds'] ) || self::DEFAULT_CACHE_SECONDS )
 				: self::DEFAULT_CACHE_SECONDS;
 
 		$cache_key = 'lw-meetups-' . $max_count;
