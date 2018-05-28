@@ -23,19 +23,21 @@ class LW_Meetups_Widget extends WP_Widget {
 
 		$meetups = \TenUp\AsyncTransients\get_async_transient( 'lw-meetups-' . $max_count,
 			function() use ( $max_count ) {
+				$body = json_encode( array(
+					'query'     => '
+					query UpcomingMeetups( $maxCount: Int! ) {
+						PostsList( terms: { view: "events", limit: $maxCount } ) {
+							_id
+							googleLocation
+							slug
+							startTime
+						}
+					}',
+					'variables' => array( 'maxCount' => $max_count ),
+				) );
+				error_log( 'DEBUG: $body = ' . $body );
 				$response = wp_remote_post('https://www.lesswrong.com/graphql', array(
-					'body'    => json_encode( array( 
-						'query'     => '
-						query UpcomingMeetups( $maxCount: Int ) {
-							PostsList( terms: { view: "events", limit: $maxCount } ) {
-								_id
-								googleLocation
-								slug
-								startTime
-							}
-						}',
-						'variables' => array( 'maxCount' => $max_count ),
-					) ),
+					'body'    => $body,
 					'headers' => array( 'Content-Type' => 'application/json' ),
 				) );
 				$meetups = false;
@@ -126,11 +128,7 @@ class LW_Meetups_Widget extends WP_Widget {
 				<ul>
 					<?php foreach ( $meetups as $meetup ) : ?>
 						<li>
-							<a href="https://www.lesswrong.com/events/<?php echo $meetup['id']; ?>/<?php echo $meetup['slug']; ?>">
-								<?php echo $meetup['start_time']->format( 'F j' ); ?>
-								<br />
-								<?php echo $meetup['locality'] ?>, <?php if ( $meetup['area'] ) : echo $meetup['area'] ?>, <?php endif; echo $meetup['country'] ?>
-							</a>
+							<a href="https://www.lesswrong.com/events/<?php echo $meetup['id']; ?>/<?php echo $meetup['slug']; ?>"><?php echo $meetup['start_time']->format( 'F j' ); ?><br /><?php echo $meetup['locality'] ?>, <?php if ( $meetup['area'] ) : echo $meetup['area'] ?>, <?php endif; echo $meetup['country'] ?></a>
 						</li>
 					<?php endforeach; ?>
 				</ul>
