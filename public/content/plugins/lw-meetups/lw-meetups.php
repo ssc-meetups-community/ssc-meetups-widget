@@ -26,7 +26,7 @@ class LW_Meetups_Widget extends WP_Widget {
 				$response = wp_remote_post('https://www.lesswrong.com/graphql', array(
 					'body'    => json_encode( array( 
 						'query'     => '
-						{
+						query UpcomingMeetups( $maxCount: Int ) {
 							PostsList( terms: { view: "events", limit: $maxCount } ) {
 								_id
 								googleLocation
@@ -36,7 +36,7 @@ class LW_Meetups_Widget extends WP_Widget {
 						}',
 						'variables' => array( 'maxCount' => $max_count ),
 					) ),
-					'headers' => array( 'Content-Type' => 'application/graphql' ),
+					'headers' => array( 'Content-Type' => 'application/json' ),
 				) );
 				$meetups = false;
 				if ( ! is_wp_error( $response )	&& $response['response']['code'] === 200 ) {
