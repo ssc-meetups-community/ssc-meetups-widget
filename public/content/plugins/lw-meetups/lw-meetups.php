@@ -8,6 +8,10 @@ Author URI: https://anomalybeta.com
 
 class LW_Meetups_Widget extends WP_Widget {
 
+	private const DEFAULT_TITLE = 'Upcoming Meetups';
+	private const DEFAULT_MAX_COUNT = 5;
+	private const DEFAULT_CACHE_SECONDS = 60;
+
 	public function __construct() {
 		parent::__construct( 'lw_meetups', __('LessWrong Meetups'), array(
 			'description' => __( 'Lists upcoming meetups from LessWrong.' ),
@@ -16,28 +20,27 @@ class LW_Meetups_Widget extends WP_Widget {
 
 	public function widget( $args, $instance ) {
 		$title = apply_filters( 'widget_title',
-			( ! empty( $instance['title'] ) ) ? $instance['title'] : __( 'Upcoming Meetups' ),
+			( ! empty( $instance['title'] ) ) ? $instance['title'] : __( DEFAULT_TITLE ),
 			$instance, $this->id_base
 		);
-		$max_count = ( ! empty( $instance['number'] ) ) ? ( absint( $instance['number'] ) || 5 ) : 5;
+		$max_count = ( ! empty( $instance['max_count'] ) ) ? absint( $instance['max_count'] ) : DEFAULT_MAX_COUNT;
+		$cache_seconds = ( ! empty( $instance['cache_seconds'] ) )
+				? absint( $instance['cache_seconds'] )
+				: DEFAULT_CACHE_SECONDS;
 
-		$meetups = \TenUp\AsyncTransients\get_async_transient( 'lw-meetups-' . $max_count,
-			function() use ( $max_count ) {
-				$body = json_encode( array(
-					'query'     => '
-					query UpcomingMeetups( $maxCount: Int! ) {
-						PostsList( terms: { view: "events", limit: $maxCount } ) {
+		$cache_key = 'lw-meetups-' . $max_count;
+		$meetups = \TenUp\AsyncTransients\get_async_transient( $cache_key,
+			function() use ( $max_count, $cache_seconds, $cache_key ) {
+				$response = wp_remote_post('https://www.lesswrong.com/graphql', array(
+					'body'    => json_encode( array( 'query'  => '
+					query UpcomingMeetups {
+						PostsList( terms: { view: "events", limit: ' . $maxCount . ' } ) {
 							_id
 							googleLocation
 							slug
 							startTime
 						}
-					}',
-					'variables' => array( 'maxCount' => $max_count ),
-				) );
-				error_log( 'DEBUG: $body = ' . $body );
-				$response = wp_remote_post('https://www.lesswrong.com/graphql', array(
-					'body'    => $body,
+					}' ) ),
 					'headers' => array( 'Content-Type' => 'application/json' ),
 				) );
 				$meetups = false;
@@ -112,9 +115,7 @@ class LW_Meetups_Widget extends WP_Widget {
 						}, $json->data->PostsList ) );
 					}
 				}
-				\TenUp\AsyncTransients\set_async_transient(
-					'lw-meetups-' . $max_count, $meetups, 1 * MINUTE_IN_SECONDS
-				);
+				\TenUp\AsyncTransients\set_async_transient( $cache_key, $meetups, $cache_seconds );
 				return $meetups;
 			}
 		);
@@ -145,20 +146,38 @@ class LW_Meetups_Widget extends WP_Widget {
 	}
 
 	public function update( $new_instance, $old_instance ) {
-		$instance              = $old_instance;
-		$instance['title']     = sanitize_text_field( $new_instance['title'] );
-		$instance['max_count'] = (int) $new_instance['max_count'];
+		$instance                  = $old_instance;
+		$instance['title']         = sanitize_text_field( $new_instance['title'] );
+		$instance['max_count']     = (int) $new_instance['max_count'];
+		$instance['cache_seconds'] = (int) $new_instance['cache_seconds'];
 		return $instance;
 	}
 
 	public function form( $instance ) {
-		$title  = isset( $instance['title'] ) ? esc_attr( $instance['title'] ) : 'Upcoming Meetups';
-		$max_count = isset( $instance['max_count'] ) ? absint( $instance['max_count'] ) : 5;
+		$title         = isset( $instance['title'] ) ? esc_attr( $instance['title'] ) : DEFAULT_TITLE;
+		$max_count     = isset( $instance['max_count'] ) ? absint( $instance['max_count'] ) : DEFAULT_MAX_COUNT;
+		$cache_seconds = isset( $instance['cache_seconds'] )
+				? absint( $instance['cache_seconds'] )
+				: DEFAULT_CACHE_SECONDS;
 		?>
-			<p><label for="<?php echo $this->get_field_id( 'title' ); ?>"><?php _e( 'Title:' ); ?></label>
-			<input class="widefat" id="<?php echo $this->get_field_id( 'title' ); ?>" name="<?php echo $this->get_field_name( 'title' ); ?>" type="text" value="<?php echo $title; ?>" /></p>
-			<p><label for="<?php echo $this->get_field_id( 'max_count' ); ?>"><?php _e( 'Maximum number of meetups to show:' ); ?></label>
-			<input class="tiny-text" id="<?php echo $this->get_field_id( 'max_count' ); ?>" name="<?php echo $this->get_field_name( 'max_count' ); ?>" type="number" step="1" min="1" value="<?php echo $max_count; ?>" size="3" /></p>
+			<p>
+				<label for="<?php echo $this->get_field_id( 'title' ); ?>"><?php _e( 'Title:' ); ?></label>
+				<input class="widefat" id="<?php echo $this->get_field_id( 'title' ); ?>"
+				       name="<?php echo $this->get_field_name( 'title' ); ?>" type="text"
+				       value="<?php echo $title; ?>" />
+			</p>
+			<p>
+				<label for="<?php echo $this->get_field_id( 'max_count' ); ?>"><?php _e( 'Maximum number of meetups to show:' ); ?></label>
+				<input class="tiny-text" id="<?php echo $this->get_field_id( 'max_count' ); ?>"
+				       name="<?php echo $this->get_field_name( 'max_count' ); ?>" type="number" step="1" min="1"
+				       value="<?php echo $max_count; ?>" size="3" />
+			</p>
+			<p>
+				<label for="<?php echo $this->get_field_id( 'cache_seconds' ); ?>"><?php _e( 'Number of seconds to remember LessWrong data for before checking again:' ); ?></label>
+				<input class="tiny-text" id="<?php echo $this->get_field_id( 'cache_seconds' ); ?>"
+				       name="<?php echo $this->get_field_name( 'cache_seconds' ); ?>" type="number" step="1" min="1"
+				       value="<?php echo $cache_seconds; ?>" size="3" />
+			</p>
 		<?php
 	}
 }
