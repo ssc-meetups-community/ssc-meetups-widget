@@ -33,16 +33,18 @@ class LW_Meetups_Widget extends WP_Widget {
 		$cache_key = 'lw-meetups-' . $max_count;
 		$meetups = \TenUp\AsyncTransients\get_async_transient( $cache_key,
 			function() use ( $max_count, $cache_seconds, $cache_key ) {
+				$body = json_encode( array( 'query' => '
+				query UpcomingMeetups {
+					PostsList( terms: { view: "events", limit: ' . $maxCount . ' } ) {
+						_id
+						googleLocation
+						slug
+						startTime
+					}
+				}' ) );
+				error_log( 'DEBUG: $body = ' . $body );
 				$response = wp_remote_post('https://www.lesswrong.com/graphql', array(
-					'body'    => json_encode( array( 'query'  => '
-					query UpcomingMeetups {
-						PostsList( terms: { view: "events", limit: ' . $maxCount . ' } ) {
-							_id
-							googleLocation
-							slug
-							startTime
-						}
-					}' ) ),
+					'body'    => $body,
 					'headers' => array( 'Content-Type' => 'application/json' ),
 				) );
 				$meetups = false;
