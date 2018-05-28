@@ -20,13 +20,15 @@ class LW_Meetups_Widget extends WP_Widget {
 
 	public function widget( $args, $instance ) {
 		$title = apply_filters( 'widget_title',
-			( ! empty( $instance['title'] ) ) ? $instance['title'] : __( DEFAULT_TITLE ),
+			( ! empty( $instance['title'] ) ) ? $instance['title'] : __( self::DEFAULT_TITLE ),
 			$instance, $this->id_base
 		);
-		$max_count = ( ! empty( $instance['max_count'] ) ) ? absint( $instance['max_count'] ) : DEFAULT_MAX_COUNT;
+		$max_count = ( ! empty( $instance['max_count'] ) )
+				? absint( $instance['max_count'] )
+				: self::DEFAULT_MAX_COUNT;
 		$cache_seconds = ( ! empty( $instance['cache_seconds'] ) )
 				? absint( $instance['cache_seconds'] )
-				: DEFAULT_CACHE_SECONDS;
+				: self::DEFAULT_CACHE_SECONDS;
 
 		$cache_key = 'lw-meetups-' . $max_count;
 		$meetups = \TenUp\AsyncTransients\get_async_transient( $cache_key,
@@ -154,11 +156,11 @@ class LW_Meetups_Widget extends WP_Widget {
 	}
 
 	public function form( $instance ) {
-		$title         = isset( $instance['title'] ) ? esc_attr( $instance['title'] ) : DEFAULT_TITLE;
-		$max_count     = isset( $instance['max_count'] ) ? absint( $instance['max_count'] ) : DEFAULT_MAX_COUNT;
+		$title         = isset( $instance['title'] ) ? esc_attr( $instance['title'] ) : self::DEFAULT_TITLE;
+		$max_count     = isset( $instance['max_count'] ) ? absint( $instance['max_count'] ) : self::DEFAULT_MAX_COUNT;
 		$cache_seconds = isset( $instance['cache_seconds'] )
 				? absint( $instance['cache_seconds'] )
-				: DEFAULT_CACHE_SECONDS;
+				: self::DEFAULT_CACHE_SECONDS;
 		?>
 			<p>
 				<label for="<?php echo $this->get_field_id( 'title' ); ?>"><?php _e( 'Title:' ); ?></label>
