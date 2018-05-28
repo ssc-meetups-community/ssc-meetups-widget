@@ -137,7 +137,7 @@ class LW_Meetups_Widget extends WP_Widget {
 			<?php
 		} else {
 			?>
-				<div>There are no meetups scheduled at this time.</div>
+				<div>There are no upcoming meetups scheduled right now.</div>
 			<?php
 		}
 		?>
@@ -155,7 +155,7 @@ class LW_Meetups_Widget extends WP_Widget {
 
 	public function form( $instance ) {
 		$title  = isset( $instance['title'] ) ? esc_attr( $instance['title'] ) : 'Upcoming Meetups';
-		$number = isset( $instance['max_count'] ) ? absint( $instance['max_count'] ) : 5;
+		$max_count = isset( $instance['max_count'] ) ? absint( $instance['max_count'] ) : 5;
 		?>
 			<p><label for="<?php echo $this->get_field_id( 'title' ); ?>"><?php _e( 'Title:' ); ?></label>
 			<input class="widefat" id="<?php echo $this->get_field_id( 'title' ); ?>" name="<?php echo $this->get_field_name( 'title' ); ?>" type="text" value="<?php echo $title; ?>" /></p>
