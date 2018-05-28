@@ -21,7 +21,8 @@
     "php": ">=5.3.0",
     "wordpress": "4.9.6",
     "fancyguy/webroot-installer": "1.0.0",
-    "vlucas/phpdotenv": "^2.4"
+    "vlucas/phpdotenv": "^2.4",
+    "10up/async-transients": "^1.0"
   },
   "extra": {
     "webroot-dir": "public/wp",
