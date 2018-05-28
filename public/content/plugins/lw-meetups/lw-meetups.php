@@ -1,3 +1,4 @@
+<?php
 /*
 Plugin Name: Upcoming Meetups
 Description: Lists upcoming meetups from LessWrong
