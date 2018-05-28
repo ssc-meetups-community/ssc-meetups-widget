@@ -13,9 +13,9 @@ class LW_Meetups_Widget extends WP_Widget {
 	private const DEFAULT_CACHE_SECONDS = 60;
 
 	public function __construct() {
-		parent::__construct( 'lw_meetups', __('LessWrong Meetups'), array(
-			'description' => __( 'Lists upcoming meetups from LessWrong.' ),
-		) );
+		parent::__construct( 'lw_meetups', __('LessWrong Meetups'),
+			array( 'description' => __( 'Lists upcoming meetups from LessWrong.' ) )
+		);
 	}
 
 	public function widget( $args, $instance ) {
@@ -32,18 +32,16 @@ class LW_Meetups_Widget extends WP_Widget {
 		$cache_key = 'lw-meetups-' . $max_count;
 		$meetups = \TenUp\AsyncTransients\get_async_transient( $cache_key,
 			function() use ( $max_count, $cache_seconds, $cache_key ) {
-				$body = json_encode( array( 'query' => '
-				query UpcomingMeetups {
-					PostsList( terms: { view: "events", limit: ' . $max_count . ' } ) {
-						_id
-						googleLocation
-						slug
-						startTime
-					}
-				}' ) );
-				error_log( 'DEBUG: $body = ' . $body );
 				$response = wp_remote_post('https://www.lesswrong.com/graphql', array(
-					'body'    => $body,
+					'body'    => json_encode( array( 'query' => '
+					query UpcomingMeetups {
+						PostsList( terms: { view: "events", limit: ' . $max_count . ' } ) {
+							_id
+							googleLocation
+							slug
+							startTime
+						}
+					}' ) ),
 					'headers' => array( 'Content-Type' => 'application/json' ),
 				) );
 				$meetups = false;
