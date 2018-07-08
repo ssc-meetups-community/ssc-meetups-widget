@@ -10,7 +10,9 @@ class LW_Meetups_Widget extends WP_Widget {
 
 	private const DEFAULT_TITLE = 'Upcoming Meetups';
 	private const DEFAULT_MAX_COUNT = 5;
+	private const DEFAULT_MAX_DAYS_IN_FUTURE = 60;
 	private const DEFAULT_CACHE_SECONDS = 60;
+	private const CACHE_KEY = 'lw-meetups';
 
 	public function __construct() {
 		parent::__construct( 'lw_meetups', __('LessWrong Meetups'),
@@ -26,23 +28,24 @@ class LW_Meetups_Widget extends WP_Widget {
 		);
 		$max_count = isset( $instance['max_count'] ) && ! empty( $instance['max_count'] )
 				? absint( $instance['max_count'] ) : self::DEFAULT_MAX_COUNT;
+		$max_days_in_future = isset( $instance['max_days_in_future'] ) && ! empty( $instance['max_days_in_future'] )
+				? absint( $instance['max_days_in_future'] ) : self::DEFAULT_MAX_DAYS_IN_FUTURE;
 		$cache_seconds = isset( $instance['cache_seconds'] ) && ! empty ( $instance['cache_seconds'] )
 				? absint( $instance['cache_seconds'] ) : self::DEFAULT_CACHE_SECONDS;
 
-		$cache_key = 'lw-meetups-' . $max_count;
-		$meetups = \TenUp\AsyncTransients\get_async_transient( $cache_key,
-			function() use ( $max_count, $cache_seconds, $cache_key ) {
+		$now = date_create();
+		$current_meetups = array_slice( array_filter( \TenUp\AsyncTransients\get_async_transient( self::CACHE_KEY,
+			function() use ( $max_count, $max_days_in_future, $cache_seconds, $now ) {
 				$response = wp_remote_post('https://www.lesswrong.com/graphql', array(
-					'body'    => json_encode( array( 'query' => '
-					query UpcomingMeetups {
-						PostsList( terms: { view: "events", limit: ' . $max_count . ' } ) {
-							_id
-							googleLocation
-							slug
-							startTime
-						}
-					}' ) ),
-					'headers' => array( 'Content-Type' => 'application/json' ),
+					'body'    => '
+					PostsList( terms: { view: "events", lat: 0, lng: 0, filters: "SSC" } ) {
+						_id
+						endTime
+						googleLocation
+						slug
+						startTime
+					}',
+					'headers' => array( 'Content-Type' => 'application/graphql' ),
 				) );
 				$meetups = false;
 				if ( ! is_wp_error( $response )	&& $response['response']['code'] === 200 ) {
@@ -61,6 +64,20 @@ class LW_Meetups_Widget extends WP_Widget {
 							$start_time = date_create( $post->startTime );
 							if ( ! $start_time ) {
 								return false;
+							}
+							if ( isset( $post->endTime ) ) {
+								if ( ! is_string( $post->endTime ) ) {
+									return false;
+								}
+								$end_time = date_create( $post->endTime );
+								if ( ! $end_time || $end_time < $now ) {
+									return false;
+								}
+							} else {
+								if ( $start_time < $now ) {
+									return false;
+								}
+								$end_time = NULL;
 							}
 							$locality = NULL;
 							$area = NULL;
@@ -109,26 +126,53 @@ class LW_Meetups_Widget extends WP_Widget {
 								'id'         => $post->_id,
 								'slug'       => $post->slug,
 								'start_time' => $start_time,
+								'end_time'   => $end_time,
 								'locality'   => $locality,
 								'area'       => $area,
 								'country'    => $country,
 							);
 						}, $json->data->PostsList ) );
+						usort( $meetups, function( $a, $b ) {
+							if ( $a['start_time'] != $b['start_time'] ) {
+								return $a['start_time'] < $b['start_time'] ? -1 : 1;
+							}
+							if ( $a['country'] != $b['country'] ) {
+								return $a['country'] < $b['country'] ? -1 : 1;
+							}
+							if ( isset( $a['area'] ) ) {
+								if ( ! isset( $b['area'] ) ) {
+									return 1;
+								}
+								if ( $a['area'] != $b['area'] ) {
+									return $a['area'] < $b['area'] ? -1 : 1;
+								}
+							} else {
+								if ( isset( $b['area'] ) ) {
+									return -1;
+								}
+							}
+							if ( $a['locality'] != $b['locality'] ) {
+								return $a['locality'] < $b['locality'] ? -1 : 1;
+							}
+							return 0;
+						} );
 					}
 				}
-				\TenUp\AsyncTransients\set_async_transient( $cache_key, $meetups, $cache_seconds );
+				\TenUp\AsyncTransients\set_async_transient( self::CACHE_KEY, $meetups, $cache_seconds );
 				return $meetups;
 			}
-		);
-
+		), function( $meetup ) use ( $now, $max_days_in_future ) {
+			$delta = date_diff( isset( $meetup['end_time'] ) ? $meetup['end_time'] : $meetup['start_time'], $now );
+			return ! $delta->invert && $delta->days <= $max_days_in_future;
+		} ), 0, $max_count );
 		echo $args['before_widget'];
 		if ( $title ) {
 			echo $args['before_title'] . $title . $args['after_title'];
 		}
-		if ( $meetups ) {
+		if ( $current_meetups ) {
 			?>
 				<ul>
-					<?php foreach ( $meetups as $meetup ) : ?>
+					<?php foreach ( $current_meetups as $meetup ) : ?>
 						<li>
 							<a href="https://www.lesswrong.com/events/<?php echo $meetup['id']; ?>/<?php echo $meetup['slug']; ?>"><?php echo $meetup['start_time']->format( 'F j' ); ?><br /><?php echo $meetup['locality'] ?>, <?php if ( $meetup['area'] ) : echo $meetup['area'] ?>, <?php endif; echo $meetup['country'] ?></a>
 						</li>
@@ -141,7 +185,7 @@ class LW_Meetups_Widget extends WP_Widget {
 			<?php
 		}
 		?>
-			<div><a href="https://www.lesswrong.com/newPost?eventForm=true">Schedule a Meetup</a></div>
+			<div><a href="https://www.lesswrong.com/newPost?eventForm=true&amp;ssc=true">Schedule a Meetup</a></div>
 		<?php
 		echo $args['after_widget'];
 	}
