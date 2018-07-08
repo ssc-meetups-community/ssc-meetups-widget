@@ -1,22 +1,22 @@
 <?php
 /*
-Plugin Name: LessWrong Meetups
-Description: Lists upcoming meetups from LessWrong
+Plugin Name: Slate Star Codex Meetups
+Description: Lists upcoming SSC meetups from LessWrong
 Author: Taymon A. Beal
 Author URI: https://anomalybeta.com
 */
 
-class LW_Meetups_Widget extends WP_Widget {
+class SSC_Meetups_Widget extends WP_Widget {
 
 	private const DEFAULT_TITLE = 'Upcoming Meetups';
 	private const DEFAULT_MAX_COUNT = 5;
 	private const DEFAULT_MAX_DAYS_IN_FUTURE = 60;
 	private const DEFAULT_CACHE_SECONDS = 60;
-	private const CACHE_KEY = 'lw-meetups';
+	private const CACHE_KEY = 'ssc-meetups';
 
 	public function __construct() {
-		parent::__construct( 'lw_meetups', __('LessWrong Meetups'),
-			array( 'description' => __( 'Lists upcoming meetups from LessWrong.' ) )
+		parent::__construct( 'ssc_meetups', __('Slate Star Codex Meetups'),
+			array( 'description' => __( 'Lists upcoming SSC meetups from LessWrong.' ) )
 		);
 	}
 
@@ -238,5 +238,5 @@ class LW_Meetups_Widget extends WP_Widget {
 }
 
 add_action( 'widgets_init', function() {
-	register_widget( 'LW_Meetups_Widget' );
+	register_widget( 'SSC_Meetups_Widget' );
 } );
