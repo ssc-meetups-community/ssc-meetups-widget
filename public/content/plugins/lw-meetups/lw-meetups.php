@@ -15,7 +15,7 @@ class SSC_Meetups_Widget extends WP_Widget {
 	private const CACHE_KEY = 'ssc-meetups';
 
 	public function __construct() {
-		parent::__construct( 'ssc_meetups', __('Slate Star Codex Meetups'),
+		parent::__construct( 'ssc_meetups', __( 'Slate Star Codex Meetups' ),
 			array( 'description' => __( 'Lists upcoming SSC meetups from LessWrong.' ) )
 		);
 	}
