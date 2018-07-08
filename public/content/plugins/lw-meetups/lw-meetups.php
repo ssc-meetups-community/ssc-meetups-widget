@@ -38,12 +38,14 @@ class LW_Meetups_Widget extends WP_Widget {
 			function() use ( $max_count, $max_days_in_future, $cache_seconds, $now ) {
 				$response = wp_remote_post('https://www.lesswrong.com/graphql', array(
 					'body'    => '
-					PostsList( terms: { view: "events", lat: 0, lng: 0, filters: "SSC" } ) {
-						_id
-						endTime
-						googleLocation
-						slug
-						startTime
+					{
+						PostsList( terms: { view: "events", lat: 0, lng: 0, filters: "SSC" } ) {
+							_id
+							endTime
+							googleLocation
+							slug
+							startTime
+						}
 					}',
 					'headers' => array( 'Content-Type' => 'application/graphql' ),
 				) );
