@@ -35,7 +35,7 @@ class LW_Meetups_Widget extends WP_Widget {
 
 		$now = date_create();
 		$current_meetups = array_slice( array_filter( \TenUp\AsyncTransients\get_async_transient( self::CACHE_KEY,
-			function() use ( $max_count, $max_days_in_future, $cache_seconds, $now ) {
+			function() use ( $max_count, $max_days_in_future, $cache_seconds ) {
 				$response = wp_remote_post('https://www.lesswrong.com/graphql', array(
 					'body'    => '
 					{
@@ -72,13 +72,10 @@ class LW_Meetups_Widget extends WP_Widget {
 									return false;
 								}
 								$end_time = date_create( $post->endTime );
-								if ( ! $end_time || $end_time < $now ) {
+								if ( ! $end_time ) {
 									return false;
 								}
 							} else {
-								if ( $start_time < $now ) {
-									return false;
-								}
 								$end_time = NULL;
 							}
 							$locality = NULL;
