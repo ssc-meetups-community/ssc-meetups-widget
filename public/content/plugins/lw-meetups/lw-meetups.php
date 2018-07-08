@@ -85,7 +85,8 @@ class LW_Meetups_Widget extends WP_Widget {
 								if ( ! isset( $component->types ) || ! is_array( $component->types ) ) {
 									return false;
 								}
-								if ( in_array( 'locality', $component->types ) ) {
+								if ( in_array( 'locality', $component->types )
+										|| in_array( 'postal_town', $component->types ) ) {
 									if ( ! isset( $component->long_name ) || ! is_string( $component->long_name ) ) {
 										return false;
 									}
@@ -161,7 +162,7 @@ class LW_Meetups_Widget extends WP_Widget {
 				return $meetups;
 			}
 		), function( $meetup ) use ( $now, $max_days_in_future ) {
-			$delta = date_diff( isset( $meetup['end_time'] ) ? $meetup['end_time'] : $meetup['start_time'], $now );
+			$delta = date_diff( $now, isset( $meetup['end_time'] ) ? $meetup['end_time'] : $meetup['start_time'] );
 			return ! $delta->invert && $delta->days <= $max_days_in_future;
 		} ), 0, $max_count );
 		echo $args['before_widget'];
@@ -190,16 +191,20 @@ class LW_Meetups_Widget extends WP_Widget {
 	}
 
 	public function update( $new_instance, $old_instance ) {
-		$instance                  = $old_instance;
-		$instance['title']         = sanitize_text_field( $new_instance['title'] );
-		$instance['max_count']     = (int) $new_instance['max_count'];
-		$instance['cache_seconds'] = (int) $new_instance['cache_seconds'];
+		$instance                       = $old_instance;
+		$instance['title']              = sanitize_text_field( $new_instance['title'] );
+		$instance['max_count']          = (int) $new_instance['max_count'];
+		$instance['max_days_in_future'] = (int) $new_instance['max_days_in_future'];
+		$instance['cache_seconds']      = (int) $new_instance['cache_seconds'];
 		return $instance;
 	}
 
 	public function form( $instance ) {
-		$title         = isset( $instance['title'] ) ? esc_attr( $instance['title'] ) : self::DEFAULT_TITLE;
-		$max_count     = isset( $instance['max_count'] ) ? absint( $instance['max_count'] ) : self::DEFAULT_MAX_COUNT;
+		$title     = isset( $instance['title'] ) ? esc_attr( $instance['title'] ) : self::DEFAULT_TITLE;
+		$max_count = isset( $instance['max_count'] ) ? absint( $instance['max_count'] ) : self::DEFAULT_MAX_COUNT;
+		$max_days_in_future = isset( $instance['max_days_in_future'] )
+				? absint( $instance['max_days_in_future'] )
+				: self::DEFAULT_MAX_DAYS_IN_FUTURE;
 		$cache_seconds = isset( $instance['cache_seconds'] )
 				? absint( $instance['cache_seconds'] )
 				: self::DEFAULT_CACHE_SECONDS;
@@ -215,6 +220,12 @@ class LW_Meetups_Widget extends WP_Widget {
 				<input class="tiny-text" id="<?php echo $this->get_field_id( 'max_count' ); ?>"
 				       name="<?php echo $this->get_field_name( 'max_count' ); ?>" type="number" step="1" min="1"
 				       value="<?php echo $max_count; ?>" size="3" />
+			</p>
+			<p>
+				<label for="<?php echo $this->get_field_id( 'max_days_in_future' ); ?>"><?php _e( 'Maximum number of days in advance to show meetups:' ); ?></label>
+				<input class="tiny-text" id="<?php echo $this->get_field_id( 'max_days_in_future' ); ?>"
+				       name="<?php echo $this->get_field_name( 'max_days_in_future' ); ?>" type="number" step="1" min="1"
+				       value="<?php echo $max_days_in_future; ?>" size="3" />
 			</p>
 			<p>
 				<label for="<?php echo $this->get_field_id( 'cache_seconds' ); ?>"><?php _e( 'Number of seconds to remember LessWrong data for before checking again:' ); ?></label>
