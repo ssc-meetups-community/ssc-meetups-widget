@@ -86,7 +86,7 @@ class SSC_Meetups_Widget extends WP_Widget {
 									return false;
 								}
 								if ( in_array( 'locality', $component->types )
-										|| ( in_array( 'postal_town', $component->types && ! $locality ) ) ) {
+										|| ( in_array( 'postal_town', $component->types ) && ! $locality ) ) {
 									if ( ! isset( $component->long_name ) || ! is_string( $component->long_name ) ) {
 										return false;
 									}
