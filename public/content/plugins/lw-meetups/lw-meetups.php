@@ -39,7 +39,7 @@ class LW_Meetups_Widget extends WP_Widget {
 				$response = wp_remote_post('https://www.lesswrong.com/graphql', array(
 					'body'    => '
 					{
-						PostsList( terms: { view: "events", lat: 0, lng: 0, filters: "SSC" } ) {
+						PostsList( terms: { view: "nearbyEvents", lat: 0, lng: 0, filters: "SSC" } ) {
 							_id
 							endTime
 							googleLocation
