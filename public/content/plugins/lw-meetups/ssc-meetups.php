@@ -191,8 +191,10 @@ class SSC_Meetups_Widget extends WP_Widget {
 			<?php
 		}
 		?>
-			<div><a href="https://www.lesswrong.com/community?filters=SSC">All Meetups and Local Groups</a></div>
-			<div><a href="https://www.lesswrong.com/newPost?eventForm=true&amp;ssc=true">Schedule a Meetup</a></div>
+			<ul style="padding-top: 0.5em;">
+				<li><a href="https://www.lesswrong.com/community?filters=SSC">All Meetups and Local Groups</a></li>
+				<li><a href="https://www.lesswrong.com/newPost?eventForm=true&amp;ssc=true">Schedule a Meetup</a></li>
+			</ul>
 		<?php
 		echo $args['after_widget'];
 	}
