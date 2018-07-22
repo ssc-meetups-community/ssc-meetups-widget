@@ -13,6 +13,7 @@ class SSC_Meetups_Widget extends WP_Widget {
 	private const DEFAULT_MAX_DAYS_IN_FUTURE = 60;
 	private const DEFAULT_CACHE_SECONDS = 60;
 	private const CACHE_KEY = 'ssc-meetups';
+	private const COUNTRIES_NEEDING_AREAS = array( 'AU', 'CA', 'GB', 'US' );
 
 	public function __construct() {
 		parent::__construct( 'ssc_meetups', __( 'Slate Star Codex Meetups' ),
@@ -86,7 +87,9 @@ class SSC_Meetups_Widget extends WP_Widget {
 									return false;
 								}
 								if ( in_array( 'locality', $component->types )
-										|| ( in_array( 'postal_town', $component->types ) && ! $locality ) ) {
+										|| in_array( 'postal_town', $component->types )
+										|| ( in_array( 'administrative_area_level_2', $component->types )
+												&& ! $locality ) ) {
 									if ( ! isset( $component->long_name ) || ! is_string( $component->long_name ) ) {
 										return false;
 									}
@@ -121,6 +124,9 @@ class SSC_Meetups_Widget extends WP_Widget {
 							}
 							if ( ! $locality || ! $country ) {
 								return false;
+							}
+							if ( ! in_array( $country, self::COUNTRIES_NEEDING_AREAS ) ) {
+								$area = NULL;
 							}
 							return array(
 								'id'         => $post->_id,
@@ -185,6 +191,7 @@ class SSC_Meetups_Widget extends WP_Widget {
 			<?php
 		}
 		?>
+			<div><a href="https://www.lesswrong.com/community?filters=SSC">All Meetups and Local Groups</a></div>
 			<div><a href="https://www.lesswrong.com/newPost?eventForm=true&amp;ssc=true">Schedule a Meetup</a></div>
 		<?php
 		echo $args['after_widget'];
