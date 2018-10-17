@@ -6,6 +6,10 @@ Author: Taymon A. Beal
 Author URI: https://anomalybeta.com
 */
 
+define( '__PLUGIN_ROOT__', dirname( __FILE__ ) );
+require_once( __PLUGIN_ROOT__ . '/helpers.php' );
+require_once( __PLUGIN_ROOT__ . '/TenUp/AsyncTransients/Transient.php' );
+
 class SSC_Meetups_Widget extends WP_Widget {
 
 	const DEFAULT_TITLE = 'Upcoming Meetups';
