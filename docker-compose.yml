@@ -1,0 +1,50 @@
+version: '3'
+services:
+  wordpress:
+    depends_on:
+      - mysql
+    image: wordpress:4.9-php5.6
+    volumes:
+      - wp_root:/var/www/html
+      - ./ssc-meetups:/var/www/html/wp-content/plugins/ssc-meetups
+    ports:
+      - 8000:80
+    restart: always
+    environment:
+      WORDPRESS_DEBUG: 1
+  mysql:
+    image: mysql:5.7
+    volumes:
+      - /var/lib/mysql
+    restart: always
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+  setup:
+    depends_on:
+      - mysql
+      - wordpress
+    image: wordpress:cli-php5.6
+    volumes:
+      - wp_root:/var/www/html
+      - ./ssc-meetups:/var/www/html/wp-content/plugins/ssc-meetups
+    user: xfs
+    command: /bin/bash -c '
+      set -euo pipefail;
+      for i in {1..30}; do
+        sleep 1;
+        if ! wp db check; then
+          continue;
+        fi;
+        if wp core is-installed; then
+          exit 0;
+        fi;
+        wp core install --url=http://localhost:8000  --title="SSC Meetups Test Site" --admin_user=admin --admin_password=admin --admin_email=admin@example.com --skip-email;
+        wp theme install pujugama --activate;
+        wp plugin activate ssc-meetups;
+        wp widget add ssc_meetups primary-widget-area 3;
+        exit 0;
+      done;
+      echo "Database check timed out." >&2;
+      exit 1'
+volumes:
+  wp_root:
