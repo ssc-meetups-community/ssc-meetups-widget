@@ -167,7 +167,11 @@ class SSC_Meetups_Widget extends WP_Widget {
 							}
 							return 0;
 						} );
+					} else {
+						trigger_error( 'Bad JSON from LessWrong: ' . print_r( $json, true ), E_USER_ERROR );
 					}
+				} else {
+					trigger_error( 'Could not fetch meetup list from LessWrong: ' . print_r( $response, true ), E_USER_ERROR );
 				}
 				\TenUp\AsyncTransients\set_async_transient( self::CACHE_KEY, $meetups, $cache_seconds );
 				return $meetups;
