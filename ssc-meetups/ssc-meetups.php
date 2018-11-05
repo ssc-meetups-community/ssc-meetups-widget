@@ -17,6 +17,7 @@ class SSC_Meetups_Widget extends WP_Widget {
 	const DEFAULT_MAX_DAYS_IN_FUTURE = 60;
 	const DEFAULT_CACHE_SECONDS = 60;
 	const CACHE_KEY = 'ssc-meetups';
+	const DEBUG_KEY = 'ssc-meetups-debug';
 
 	public function __construct() {
 		parent::__construct( 'ssc_meetups', __( 'Slate Star Codex Meetups' ),
@@ -167,20 +168,27 @@ class SSC_Meetups_Widget extends WP_Widget {
 							}
 							return 0;
 						} );
+						set_transient( self::DEBUG_KEY, 'Retrieved meetup list from LessWrong.', $cache_seconds);
 					} else {
-						trigger_error( 'Bad JSON from LessWrong: ' . print_r( $json, true ), E_USER_ERROR );
+						set_transient(
+							self::DEBUG_KEY, 'Bad JSON from LessWrong: ' . print_r( $json, true ), $cache_seconds );
 					}
 				} else {
-					trigger_error( 'Could not fetch meetup list from LessWrong: ' . print_r( $response, true ), E_USER_ERROR );
+					set_transient(
+						self::DEBUG_KEY,
+						'Could not fetch meetup list from LessWrong: ' . print_r( $response, true ),
+						$cache_seconds
+					);
 				}
-				\TenUp\AsyncTransients\set_async_transient( self::CACHE_KEY, $meetups, $cache_seconds );
+				set_transient( self::CACHE_KEY, $meetups, $cache_seconds );
 				return $meetups;
 			}
 		);
 		$current_meetups = is_array( $all_meetups ) ? array_slice( array_filter( $all_meetups, function( $meetup ) use ( $now, $max_days_in_future ) {
 			$delta = date_diff( $now, isset( $meetup['end_time'] ) ? $meetup['end_time'] : $meetup['start_time'] );
 			return ! $delta->invert && $delta->days <= $max_days_in_future;
-		} ), 0, $max_count ) : NULL;
+			} ), 0, $max_count )
+			: NULL;
 		echo $args['before_widget'];
 		if ( $title ) {
 			echo $args['before_title'] . $title . $args['after_title'];
@@ -209,6 +217,7 @@ class SSC_Meetups_Widget extends WP_Widget {
 				<li><a href="https://www.lesswrong.com/community?filters=SSC">Map of Local Meetup Groups</a></li>
 				<li><a href="https://www.lesswrong.com/newPost?eventForm=true&amp;ssc=true">Schedule a Meetup</a></li>
 			</ul>
+			<!-- MEETUPS_DEBUG: <?php echo get_transient( self::DEBUG_KEY ) ?> -->
 		<?php
 		echo $args['after_widget'];
 	}
