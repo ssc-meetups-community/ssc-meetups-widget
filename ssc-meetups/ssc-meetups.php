@@ -6,10 +6,6 @@ Description: Lists upcoming SSC meetups from LessWrong
 License: MIT
 */
 
-define( '__PLUGIN_ROOT__', dirname( __FILE__ ) );
-require_once( __PLUGIN_ROOT__ . '/helpers.php' );
-require_once( __PLUGIN_ROOT__ . '/TenUp/AsyncTransients/Transient.php' );
-
 class SSC_Meetups_Widget extends WP_Widget {
 
 	const DEFAULT_TITLE = 'Upcoming Meetups';
@@ -37,153 +33,139 @@ class SSC_Meetups_Widget extends WP_Widget {
 				? absint( $instance['max_days_in_future'] ) : self::DEFAULT_MAX_DAYS_IN_FUTURE;
 		$cache_seconds = isset( $instance['cache_seconds'] ) && ! empty ( $instance['cache_seconds'] )
 				? absint( $instance['cache_seconds'] ) : self::DEFAULT_CACHE_SECONDS;
-
-		$now = date_create();
-		$all_meetups = \TenUp\AsyncTransients\get_async_transient( self::CACHE_KEY,
-			function() use ( $max_count, $max_days_in_future, $cache_seconds ) {
-				$response = wp_remote_post( 'https://www.lesswrong.com/graphql', array(
-					'body'    => '
-					{
-						posts(input: {terms: {view: "nearbyEvents", lat: 0, lng: 0, filters: "SSC"}}) {
-							results {
-								_id
-								endTime
-								googleLocation
-								slug
-								startTime
-							}
+		$all_meetups = get_transient( self::CACHE_KEY );
+		if ( ! is_array( $all_meetups ) ) {
+			$response = wp_remote_post( 'https://www.lesswrong.com/graphql', array(
+				'body'    => '
+				{
+					posts(input: {terms: {view: "nearbyEvents", lat: 0, lng: 0, filters: "SSC"}}) {
+						results {
+							_id
+							endTime
+							googleLocation
+							slug
+							startTime
 						}
-					}',
-					'headers' => array( 'Content-Type' => 'application/graphql' ),
-				) );
-				$meetups = false;
-				if ( ! is_wp_error( $response )	&& $response['response']['code'] === 200 ) {
-					$json = json_decode( $response['body'] );
-					if ( isset( $json->data->posts->results ) && is_array( $json->data->posts->results ) ) {
-						$meetups = array_filter( array_map( function( $post ) {
-							if ( ! isset(
-									$post->_id, $post->slug, $post->startTime,
-									$post->googleLocation->address_components
-								)
-									|| ! is_string( $post->_id) || ! is_string( $post->slug )
-									|| ! is_string( $post->startTime )
-									|| ! is_array( $post->googleLocation->address_components ) ) {
+					}
+				}',
+				'headers' => array( 'Content-Type' => 'application/graphql' ),
+			) );
+			if ( ! is_wp_error( $response )	&& $response['response']['code'] === 200 ) {
+				$json = json_decode( $response['body'] );
+				if ( isset( $json->data->posts->results ) && is_array( $json->data->posts->results ) ) {
+					$all_meetups = array_filter( array_map( function( $post ) {
+						if ( ! isset(
+								$post->_id, $post->slug, $post->startTime,
+								$post->googleLocation->address_components
+							)
+								|| ! is_string( $post->_id) || ! is_string( $post->slug )
+								|| ! is_string( $post->startTime )
+								|| ! is_array( $post->googleLocation->address_components ) ) {
+							return false;
+						}
+						$start_time = date_create( $post->startTime );
+						if ( ! $start_time ) {
+							return false;
+						}
+						if ( isset( $post->endTime ) ) {
+							if ( ! is_string( $post->endTime ) ) {
 								return false;
 							}
-							$start_time = date_create( $post->startTime );
-							if ( ! $start_time ) {
+							$end_time = date_create( $post->endTime );
+							if ( ! $end_time ) {
 								return false;
 							}
-							if ( isset( $post->endTime ) ) {
-								if ( ! is_string( $post->endTime ) ) {
-									return false;
-								}
-								$end_time = date_create( $post->endTime );
-								if ( ! $end_time ) {
-									return false;
-								}
-							} else {
-								$end_time = NULL;
+						} else {
+							$end_time = NULL;
+						}
+						$locality = NULL;
+						$area = NULL;
+						$country = NULL;
+						foreach ( $post->googleLocation->address_components as $component ) {
+							if ( ! isset( $component->types ) || ! is_array( $component->types ) ) {
+								return false;
 							}
-							$locality = NULL;
-							$area = NULL;
-							$country = NULL;
-							foreach ( $post->googleLocation->address_components as $component ) {
-								if ( ! isset( $component->types ) || ! is_array( $component->types ) ) {
+							if ( in_array( 'locality', $component->types )
+									|| in_array( 'postal_town', $component->types )
+									|| ( in_array( 'administrative_area_level_2', $component->types )
+											&& ! $locality ) ) {
+								if ( ! isset( $component->long_name ) || ! is_string( $component->long_name ) ) {
 									return false;
 								}
-								if ( in_array( 'locality', $component->types )
-										|| in_array( 'postal_town', $component->types )
-										|| ( in_array( 'administrative_area_level_2', $component->types )
-												&& ! $locality ) ) {
-									if ( ! isset( $component->long_name ) || ! is_string( $component->long_name ) ) {
+								$locality = $component->long_name;
+							} elseif ( in_array( 'administrative_area_level_1', $component->types ) ) {
+								if ( isset( $component->short_name ) ) {
+									if ( ! is_string( $component->short_name ) ) {
 										return false;
 									}
-									$locality = $component->long_name;
-								} elseif ( in_array( 'administrative_area_level_1', $component->types ) ) {
-									if ( isset( $component->short_name ) ) {
-										if ( ! is_string( $component->short_name ) ) {
-											return false;
-										}
-										$area = $component->short_name;
-									} else {
-										if ( ! isset( $component->long_name )
-												|| ! is_string( $component->long_name ) ) {
-											return false;
-										}
-										$area = $component->long_name;
+									$area = $component->short_name;
+								} else {
+									if ( ! isset( $component->long_name )
+											|| ! is_string( $component->long_name ) ) {
+										return false;
 									}
-								} elseif ( in_array( 'country', $component->types ) ) {
-									if ( isset( $component->short_name ) ) {
-										if ( ! is_string( $component->short_name ) ) {
-											return false;
-										}
-										$country = $component->short_name;
-									} else {
-										if ( ! isset( $component->long_name )
-												|| ! is_string( $component->long_name ) ) {
-											return false;
-										}
-										$country = $component->long_name;
+									$area = $component->long_name;
+								}
+							} elseif ( in_array( 'country', $component->types ) ) {
+								if ( isset( $component->short_name ) ) {
+									if ( ! is_string( $component->short_name ) ) {
+										return false;
 									}
+									$country = $component->short_name;
+								} else {
+									if ( ! isset( $component->long_name )
+											|| ! is_string( $component->long_name ) ) {
+										return false;
+									}
+									$country = $component->long_name;
 								}
 							}
-							if ( ! $locality || ! $country ) {
-								return false;
+						}
+						if ( ! $locality || ! $country ) {
+							return false;
+						}
+						if ( ! in_array( $country, array( 'AU', 'CA', 'GB', 'US' ) ) ) {
+							$area = NULL;
+						}
+						return array(
+							'id'         => $post->_id,
+							'slug'       => $post->slug,
+							'start_time' => $start_time,
+							'end_time'   => $end_time,
+							'locality'   => $locality,
+							'area'       => $area,
+							'country'    => $country,
+						);
+					}, $json->data->posts->results ) );
+					usort( $all_meetups, function( $a, $b ) {
+						if ( $a['start_time'] != $b['start_time'] ) {
+							return $a['start_time'] < $b['start_time'] ? -1 : 1;
+						}
+						if ( $a['country'] != $b['country'] ) {
+							return $a['country'] < $b['country'] ? -1 : 1;
+						}
+						if ( isset( $a['area'] ) ) {
+							if ( ! isset( $b['area'] ) ) {
+								return 1;
 							}
-							if ( ! in_array( $country, array( 'AU', 'CA', 'GB', 'US' ) ) ) {
-								$area = NULL;
+							if ( $a['area'] != $b['area'] ) {
+								return $a['area'] < $b['area'] ? -1 : 1;
 							}
-							return array(
-								'id'         => $post->_id,
-								'slug'       => $post->slug,
-								'start_time' => $start_time,
-								'end_time'   => $end_time,
-								'locality'   => $locality,
-								'area'       => $area,
-								'country'    => $country,
-							);
-						}, $json->data->posts->results ) );
-						usort( $meetups, function( $a, $b ) {
-							if ( $a['start_time'] != $b['start_time'] ) {
-								return $a['start_time'] < $b['start_time'] ? -1 : 1;
+						} else {
+							if ( isset( $b['area'] ) ) {
+								return -1;
 							}
-							if ( $a['country'] != $b['country'] ) {
-								return $a['country'] < $b['country'] ? -1 : 1;
-							}
-							if ( isset( $a['area'] ) ) {
-								if ( ! isset( $b['area'] ) ) {
-									return 1;
-								}
-								if ( $a['area'] != $b['area'] ) {
-									return $a['area'] < $b['area'] ? -1 : 1;
-								}
-							} else {
-								if ( isset( $b['area'] ) ) {
-									return -1;
-								}
-							}
-							if ( $a['locality'] != $b['locality'] ) {
-								return $a['locality'] < $b['locality'] ? -1 : 1;
-							}
-							return 0;
-						} );
-						set_transient( self::DEBUG_KEY, 'Retrieved meetup list from LessWrong.', $cache_seconds);
-					} else {
-						set_transient(
-							self::DEBUG_KEY, 'Bad JSON from LessWrong: ' . print_r( $json, true ), $cache_seconds );
-					}
-				} else {
-					set_transient(
-						self::DEBUG_KEY,
-						'Could not fetch meetup list from LessWrong: ' . print_r( $response, true ),
-						$cache_seconds
-					);
+						}
+						if ( $a['locality'] != $b['locality'] ) {
+							return $a['locality'] < $b['locality'] ? -1 : 1;
+						}
+						return 0;
+					} );
+					set_transient( self::CACHE_KEY, $all_meetups, $cache_seconds );
 				}
-				set_transient( self::CACHE_KEY, $meetups, $cache_seconds );
-				return $meetups;
 			}
-		);
+		}
+		$now = date_create();
 		$current_meetups = is_array( $all_meetups ) ? array_slice( array_filter( $all_meetups, function( $meetup ) use ( $now, $max_days_in_future ) {
 			$delta = date_diff( $now, isset( $meetup['end_time'] ) ? $meetup['end_time'] : $meetup['start_time'] );
 			return ! $delta->invert && $delta->days <= $max_days_in_future;
@@ -217,7 +199,6 @@ class SSC_Meetups_Widget extends WP_Widget {
 				<li><a href="https://www.lesswrong.com/community?filters=SSC">Map of Local Meetup Groups</a></li>
 				<li><a href="https://www.lesswrong.com/newPost?eventForm=true&amp;ssc=true">Schedule a Meetup</a></li>
 			</ul>
-			<!-- MEETUPS_DEBUG: <?php echo get_transient( self::DEBUG_KEY ) ?> -->
 		<?php
 		echo $args['after_widget'];
 	}
