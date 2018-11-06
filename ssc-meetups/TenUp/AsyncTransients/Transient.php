@@ -65,14 +65,13 @@ class Transient {
 		// Nothing should be in the queue anyways, since we don't add to queue if this function is not available
 		// See $this->add_to_queue()
 		if ( ! function_exists( 'fastcgi_finish_request' ) ) {
-			set_transient( 'ssc-meetups-debug', 'Reached finish_request; fastcgi_finish_request exists.', 60 );
 			return;
 		}
-		set_transient( 'ssc-meetups-debug', 'Reached finish_request; fastcgi_finish_request does not exist.', 60 );
 
 		fastcgi_finish_request();
 		set_time_limit( 0 );
 
+		set_transient( 'ssc-meetups-debug', 'Queue: '. print_r( $this->queue, true ), 60 );
 		foreach( $this->queue as $item ) {
 			call_user_func_array( $item['function'], $item['params'] );
 		}
@@ -186,7 +185,6 @@ class Transient {
 	 */
 	public function add_to_queue( $function, $params_array = array() ) {
 		if ( function_exists( 'fastcgi_finish_request' ) ) {
-			set_transient( 'ssc-meetups-debug', 'fastcgi_finish_request exists.', 60 );
 			/*
 			 * Generates a unique hash of the function + params, to make sure we only process a callback for one
 			 * combination even if it is accidentally added multiple times in a request for the same set of data
@@ -203,7 +201,6 @@ class Transient {
 				);
 			}
 		} else {
-			set_transient( 'ssc-meetups-debug', 'fastcgi_finish_request does not exist.', 60 );
 			// We don't have fastcgi_finish_request available, so refresh the transient now instead of queuing it for later.
 			call_user_func_array( $function, $params_array );
 		}
