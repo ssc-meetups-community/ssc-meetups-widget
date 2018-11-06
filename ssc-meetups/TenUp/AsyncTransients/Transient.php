@@ -68,10 +68,11 @@ class Transient {
 			return;
 		}
 
+		set_transient( 'ssc-meetups-debug', 'Queue pre-finish: '. print_r( $this->queue, true ), 60 );
 		fastcgi_finish_request();
 		set_time_limit( 0 );
 
-		set_transient( 'ssc-meetups-debug', 'Queue: '. print_r( $this->queue, true ), 60 );
+		set_transient( 'ssc-meetups-debug', 'Queue post-finish: '. print_r( $this->queue, true ), 60 );
 		foreach( $this->queue as $item ) {
 			call_user_func_array( $item['function'], $item['params'] );
 		}
