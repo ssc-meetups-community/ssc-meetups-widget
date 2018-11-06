@@ -65,6 +65,7 @@ class Transient {
 		// Nothing should be in the queue anyways, since we don't add to queue if this function is not available
 		// See $this->add_to_queue()
 		if ( ! function_exists( 'fastcgi_finish_request' ) ) {
+			set_transient( 'ssc-meetups-debug', 'fastcgi_finish_request does not exist.', 60 );
 			return;
 		}
 
