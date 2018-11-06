@@ -11,7 +11,7 @@ class SSC_Meetups_Widget extends WP_Widget {
 	const DEFAULT_TITLE = 'Upcoming Meetups';
 	const DEFAULT_MAX_COUNT = 5;
 	const DEFAULT_MAX_DAYS_IN_FUTURE = 60;
-	const DEFAULT_CACHE_SECONDS = 900;
+	const CACHE_SECONDS = 900;
 	const CACHE_KEY = 'ssc-meetups';
 
 	public function __construct() {
@@ -30,8 +30,6 @@ class SSC_Meetups_Widget extends WP_Widget {
 				? absint( $instance['max_count'] ) : self::DEFAULT_MAX_COUNT;
 		$max_days_in_future = isset( $instance['max_days_in_future'] ) && ! empty( $instance['max_days_in_future'] )
 				? absint( $instance['max_days_in_future'] ) : self::DEFAULT_MAX_DAYS_IN_FUTURE;
-		$cache_seconds = isset( $instance['cache_seconds'] ) && ! empty ( $instance['cache_seconds'] )
-				? absint( $instance['cache_seconds'] ) : self::DEFAULT_CACHE_SECONDS;
 		$all_meetups = get_transient( self::CACHE_KEY );
 		if ( ! is_array( $all_meetups ) ) {
 			$response = wp_remote_post( 'https://www.lesswrong.com/graphql', array(
@@ -160,7 +158,7 @@ class SSC_Meetups_Widget extends WP_Widget {
 						}
 						return 0;
 					} );
-					set_transient( self::CACHE_KEY, $all_meetups, $cache_seconds );
+					set_transient( self::CACHE_KEY, $all_meetups, self::CACHE_SECONDS );
 				}
 			}
 		}
@@ -207,7 +205,6 @@ class SSC_Meetups_Widget extends WP_Widget {
 		$instance['title']              = sanitize_text_field( $new_instance['title'] );
 		$instance['max_count']          = (int) $new_instance['max_count'];
 		$instance['max_days_in_future'] = (int) $new_instance['max_days_in_future'];
-		$instance['cache_seconds']      = (int) $new_instance['cache_seconds'];
 		return $instance;
 	}
 
@@ -217,9 +214,6 @@ class SSC_Meetups_Widget extends WP_Widget {
 		$max_days_in_future = isset( $instance['max_days_in_future'] )
 				? absint( $instance['max_days_in_future'] )
 				: self::DEFAULT_MAX_DAYS_IN_FUTURE;
-		$cache_seconds = isset( $instance['cache_seconds'] )
-				? absint( $instance['cache_seconds'] )
-				: self::DEFAULT_CACHE_SECONDS;
 		?>
 			<p>
 				<label for="<?php echo $this->get_field_id( 'title' ); ?>"><?php _e( 'Title:' ); ?></label>
@@ -238,12 +232,6 @@ class SSC_Meetups_Widget extends WP_Widget {
 				<input class="tiny-text" id="<?php echo $this->get_field_id( 'max_days_in_future' ); ?>"
 				       name="<?php echo $this->get_field_name( 'max_days_in_future' ); ?>" type="number" step="1" min="1"
 				       value="<?php echo $max_days_in_future; ?>" size="3" />
-			</p>
-			<p>
-				<label for="<?php echo $this->get_field_id( 'cache_seconds' ); ?>"><?php _e( 'Number of seconds to remember LessWrong data for before checking again:' ); ?></label>
-				<input class="tiny-text" id="<?php echo $this->get_field_id( 'cache_seconds' ); ?>"
-				       name="<?php echo $this->get_field_name( 'cache_seconds' ); ?>" type="number" step="1" min="1"
-				       value="<?php echo $cache_seconds; ?>" size="3" />
 			</p>
 		<?php
 	}
