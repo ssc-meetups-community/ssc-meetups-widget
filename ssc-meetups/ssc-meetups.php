@@ -11,9 +11,8 @@ class SSC_Meetups_Widget extends WP_Widget {
 	const DEFAULT_TITLE = 'Upcoming Meetups';
 	const DEFAULT_MAX_COUNT = 5;
 	const DEFAULT_MAX_DAYS_IN_FUTURE = 60;
-	const DEFAULT_CACHE_SECONDS = 60;
+	const DEFAULT_CACHE_SECONDS = 900;
 	const CACHE_KEY = 'ssc-meetups';
-	const DEBUG_KEY = 'ssc-meetups-debug';
 
 	public function __construct() {
 		parent::__construct( 'ssc_meetups', __( 'Slate Star Codex Meetups' ),
