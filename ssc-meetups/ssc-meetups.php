@@ -12,7 +12,7 @@ class SSC_Meetups_Widget extends WP_Widget {
 	const DEFAULT_MAX_COUNT = 5;
 	const DEFAULT_MAX_DAYS_IN_FUTURE = 60;
 	const CACHE_SECONDS = 900;
-	const CACHE_KEY = 'ssc-meetups';
+	const CACHE_KEY = 'ssc-meetups-v2';
 
 	public function __construct() {
 		parent::__construct( 'ssc_meetups', __( 'Slate Star Codex Meetups' ),
@@ -40,6 +40,7 @@ class SSC_Meetups_Widget extends WP_Widget {
 							_id
 							endTime
 							googleLocation
+							localStartTime
 							slug
 							startTime
 						}
@@ -74,6 +75,10 @@ class SSC_Meetups_Widget extends WP_Widget {
 							}
 						} else {
 							$end_time = NULL;
+						}
+						$local_start_time = date_create( $post->localStartTime );
+						if ( ! $local_start_time ) {
+							return false;
 						}
 						$locality = NULL;
 						$area = NULL;
@@ -125,13 +130,14 @@ class SSC_Meetups_Widget extends WP_Widget {
 							$area = NULL;
 						}
 						return array(
-							'id'         => $post->_id,
-							'slug'       => $post->slug,
-							'start_time' => $start_time,
-							'end_time'   => $end_time,
-							'locality'   => $locality,
-							'area'       => $area,
-							'country'    => $country,
+							'id'               => $post->_id,
+							'slug'             => $post->slug,
+							'start_time'       => $start_time,
+							'end_time'         => $end_time,
+							'local_start_time' => $local_start_time,
+							'locality'         => $locality,
+							'area'             => $area,
+							'country'          => $country,
 						);
 					}, $json->data->posts->results ) );
 					usort( $all_meetups, function( $a, $b ) {
@@ -177,7 +183,7 @@ class SSC_Meetups_Widget extends WP_Widget {
 				<ul>
 					<?php foreach ( $current_meetups as $meetup ) : ?>
 						<li>
-							<a href="https://www.lesswrong.com/events/<?php echo $meetup['id']; ?>/<?php echo $meetup['slug']; ?>"><?php echo $meetup['start_time']->format( 'M j' ); ?>: <?php echo $meetup['locality'] ?>, <?php if ( $meetup['area'] ) : echo $meetup['area'] ?>, <?php endif; echo $meetup['country'] ?></a>
+							<a href="https://www.lesswrong.com/events/<?php echo $meetup['id']; ?>/<?php echo $meetup['slug']; ?>"><?php echo $meetup['local_start_time']->format( 'M j' ); ?>: <?php echo $meetup['locality'] ?>, <?php if ( $meetup['area'] ) : echo $meetup['area'] ?>, <?php endif; echo $meetup['country'] ?></a>
 						</li>
 					<?php endforeach; ?>
 				</ul>
