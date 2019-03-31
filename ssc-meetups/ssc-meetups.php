@@ -57,7 +57,7 @@ class SSC_Meetups_Widget extends WP_Widget {
 								$post->googleLocation->address_components
 							)
 								|| ! is_string( $post->_id) || ! is_string( $post->slug )
-								|| ! is_string( $post->startTime )
+								|| ! is_string( $post->startTime ) || ! is_string( $post->localStartTime )
 								|| ! is_array( $post->googleLocation->address_components ) ) {
 							return false;
 						}
