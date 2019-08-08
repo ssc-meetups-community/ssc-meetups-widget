@@ -33,20 +33,8 @@ class SSC_Meetups_Widget extends WP_Widget {
 		$all_meetups = get_transient( self::CACHE_KEY );
 		if ( ! is_array( $all_meetups ) ) {
 			$response = wp_remote_post( 'https://www.lesswrong.com/graphql', array(
-				'body'    => '
-				{
-					posts(input: {terms: {view: "nearbyEvents", lat: 0, lng: 0, filters: "SSC"}}) {
-						results {
-							_id
-							endTime
-							googleLocation
-							localStartTime
-							slug
-							startTime
-						}
-					}
-				}',
-				'headers' => array( 'Content-Type' => 'application/graphql' ),
+				'body'    => '{"query": "{ posts(input: {terms: {view: \\"nearbyEvents\\", lat: 0, lng: 0, filters: \\"SSC\\"}}) { results { _id endTime googleLocation localStartTime slug startTime } } }"}',
+				'headers' => array( 'Content-Type' => 'application/json' ),
 			) );
 			if ( ! is_wp_error( $response )	&& $response['response']['code'] === 200 ) {
 				$json = json_decode( $response['body'] );
