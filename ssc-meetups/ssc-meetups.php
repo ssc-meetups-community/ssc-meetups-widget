@@ -46,6 +46,8 @@ class SSC_Meetups_Widget extends WP_Widget {
 									)
 									|| ! is_string( $post->_id ) || ! is_string( $post->slug )
 									|| ! is_string( $post->startTime ) || ! is_string( $post->localStartTime )
+									|| ! preg_match( '/^[A-Za-z0-9]+$/', $post->_id )
+									|| ! preg_match( '/^[a-z0-9-]+$/', $post->slug )
 									|| ! is_array( $post->googleLocation->address_components ) ) {
 									return false;
 								}
@@ -164,14 +166,14 @@ class SSC_Meetups_Widget extends WP_Widget {
 			: NULL;
 		echo $args['before_widget'];
 		if ( $title ) {
-			echo $args['before_title'] . $title . $args['after_title'];
+			echo $args['before_title'] . htmlspecialchars($title) . $args['after_title'];
 		}
 		if ( $current_meetups ) {
 ?>
 				<ul>
 					<?php foreach ( $current_meetups as $meetup ) : ?>
 						<li>
-							<a href="https://www.lesswrong.com/events/<?php echo $meetup['id']; ?>/<?php echo $meetup['slug']; ?>"><?php echo $meetup['local_start_time']->format( 'M j' ); ?>: <?php echo $meetup['locality'] ?>, <?php if ( $meetup['area'] ) : echo $meetup['area'] ?>, <?php endif; echo $meetup['country'] ?></a>
+							<a href="https://www.lesswrong.com/events/<?php echo $meetup['id']; ?>/<?php echo $meetup['slug']; ?>"><?php echo $meetup['local_start_time']->format( 'M j' ); ?>: <?php echo htmlspecialchars($meetup['locality']) ?>, <?php if ( $meetup['area'] ) : echo htmlspecialchars($meetup['area']) ?>, <?php endif; echo htmlspecialchars($meetup['country']) ?></a>
 						</li>
 					<?php endforeach; ?>
 				</ul>
@@ -213,19 +215,19 @@ class SSC_Meetups_Widget extends WP_Widget {
 				<label for="<?php echo $this->get_field_id( 'title' ); ?>"><?php _e( 'Title:' ); ?></label>
 				<input class="widefat" id="<?php echo $this->get_field_id( 'title' ); ?>"
 				       name="<?php echo $this->get_field_name( 'title' ); ?>" type="text"
-				       value="<?php echo $title; ?>" />
+				       value="<?php echo htmlspecialchars($title); ?>" />
 			</p>
 			<p>
 				<label for="<?php echo $this->get_field_id( 'max_count' ); ?>"><?php _e( 'Maximum number of meetups to show:' ); ?></label>
 				<input class="tiny-text" id="<?php echo $this->get_field_id( 'max_count' ); ?>"
 				       name="<?php echo $this->get_field_name( 'max_count' ); ?>" type="number" step="1" min="1"
-				       value="<?php echo $max_count; ?>" size="3" />
+				       value="<?php echo htmlspecialchars($max_count); ?>" size="3" />
 			</p>
 			<p>
 				<label for="<?php echo $this->get_field_id( 'max_days_in_future' ); ?>"><?php _e( 'Maximum number of days in advance to show meetups:' ); ?></label>
 				<input class="tiny-text" id="<?php echo $this->get_field_id( 'max_days_in_future' ); ?>"
 				       name="<?php echo $this->get_field_name( 'max_days_in_future' ); ?>" type="number" step="1" min="1"
-				       value="<?php echo $max_days_in_future; ?>" size="3" />
+				       value="<?php echo htmlspecialchars($max_days_in_future); ?>" size="3" />
 			</p>
 		<?php
 	}
